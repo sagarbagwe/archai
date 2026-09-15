@@ -1,46 +1,14 @@
 import { z } from "zod";
-import { SavedDesign, savedDesignsSchema } from "@/lib/domain/design";
-
-const DESIGNS_KEY = "archai:v1:designs";
-const envelope = <T extends z.ZodTypeAny>(schema: T) => z.object({ schemaVersion: z.literal(1), updatedAt: z.string(), data: schema });
-
-export interface StorageAdapter { getItem(key: string): string | null; setItem(key: string, value: string): void; }
-
-export class MemoryStorageAdapter implements StorageAdapter {
-  private values = new Map<string, string>();
-  getItem(key: string) { return this.values.get(key) ?? null; }
-  setItem(key: string, value: string) { this.values.set(key, value); }
-}
-
-export class StorageService {
-  private fallback = new MemoryStorageAdapter();
-  constructor(private primary: StorageAdapter) {}
-
-  private read<T>(key: string, schema: z.ZodType<T>, defaultValue: T): T {
-    for (const source of [this.primary, this.fallback]) {
-      try {
-        const raw = source.getItem(key);
-        if (raw) return envelope(schema).parse(JSON.parse(raw)).data;
-      } catch { /* invalid or unavailable storage */ }
-    }
-    return defaultValue;
-  }
-
-  private write<T>(key: string, schema: z.ZodType<T>, value: T) {
-    const data = schema.parse(value);
-    const raw = JSON.stringify({ schemaVersion: 1, updatedAt: new Date().toISOString(), data });
-    try { this.primary.setItem(key, raw); return true; }
-    catch { this.fallback.setItem(key, raw); return false; }
-  }
-
-  getDesigns() { return this.read(DESIGNS_KEY, savedDesignsSchema, []); }
-  getDesign(id: string) { return this.getDesigns().find((design) => design.id === id); }
-  saveDesign(design: SavedDesign) {
-    const designs = this.getDesigns();
-    const index = designs.findIndex((item) => item.id === design.id);
-    if (index >= 0) designs[index] = design; else designs.unshift(design);
-    return this.write(DESIGNS_KEY, savedDesignsSchema, designs);
-  }
-}
-
-export const browserStorage = () => new StorageService(window.localStorage);
+import { SavedDesign, savedDesignSchema, savedDesignsSchema } from "@/lib/domain/design";
+const KEYS={designs:"archai:v1:designs",versions:"archai:v1:versions",interviews:"archai:v1:interviews",settings:"archai:v1:settings",recent:"archai:v1:recent"} as const;
+const envelope=<T extends z.ZodTypeAny>(schema:T)=>z.object({schemaVersion:z.literal(1),updatedAt:z.string(),data:schema});
+const versionSchema=z.object({id:z.string(),designId:z.string(),createdAt:z.string(),description:z.string(),snapshot:savedDesignSchema});
+const versionsSchema=z.array(versionSchema); const looseArray=z.array(z.record(z.string(),z.unknown())); const settingsSchema=z.record(z.string(),z.unknown());
+export interface StorageAdapter{getItem(key:string):string|null;setItem(key:string,value:string):void;removeItem?(key:string):void}
+export class MemoryStorageAdapter implements StorageAdapter{private values=new Map<string,string>();getItem(k:string){return this.values.get(k)??null}setItem(k:string,v:string){this.values.set(k,v)}removeItem(k:string){this.values.delete(k)}}
+export class StorageService{private fallback=new MemoryStorageAdapter();constructor(private primary:StorageAdapter){}private read<T>(key:string,schema:z.ZodType<T>,fallback:T):T{for(const source of [this.primary,this.fallback])try{const raw=source.getItem(key);if(raw)return envelope(schema).parse(JSON.parse(raw)).data}catch{}return fallback}private write<T>(key:string,schema:z.ZodType<T>,value:T){const data=schema.parse(value);const raw=JSON.stringify({schemaVersion:1,updatedAt:new Date().toISOString(),data});try{this.primary.setItem(key,raw);return true}catch{this.fallback.setItem(key,raw);return false}}
+getDesigns(){return this.read(KEYS.designs,savedDesignsSchema,[])}getDesign(id:string){return this.getDesigns().find(d=>d.id===id)}saveDesign(design:SavedDesign){const list=this.getDesigns();const i=list.findIndex(d=>d.id===design.id);if(i>=0)list[i]=design;else list.unshift(design);this.markRecent(design.id);return this.write(KEYS.designs,savedDesignsSchema,list)}deleteDesign(id:string){return this.write(KEYS.designs,savedDesignsSchema,this.getDesigns().filter(d=>d.id!==id))}
+getVersions(){return this.read(KEYS.versions,versionsSchema,[])}saveVersion(design:SavedDesign,description:string){const list=this.getVersions();list.unshift({id:crypto.randomUUID(),designId:design.id,createdAt:new Date().toISOString(),description,snapshot:design});return this.write(KEYS.versions,versionsSchema,list.slice(0,100))}getVersionsForDesign(id:string){return this.getVersions().filter(v=>v.designId===id)}restoreVersion(id:string){const v=this.getVersions().find(x=>x.id===id);if(!v)return;const restored={...v.snapshot,updatedAt:new Date().toISOString()};this.saveDesign(restored);return restored}
+getInterviews(){return this.read(KEYS.interviews,looseArray,[])}saveInterview(session:Record<string,unknown>){return this.write(KEYS.interviews,looseArray,[session,...this.getInterviews()].slice(0,50))}getSettings(){return this.read(KEYS.settings,settingsSchema,{})}saveSettings(value:Record<string,unknown>){return this.write(KEYS.settings,settingsSchema,value)}markRecent(id:string){const ids=this.read(KEYS.recent,z.array(z.string()),[]).filter(x=>x!==id);this.write(KEYS.recent,z.array(z.string()),[id,...ids].slice(0,20))}
+exportAll(){return JSON.stringify({schemaVersion:1,exportedAt:new Date().toISOString(),designs:this.getDesigns(),versions:this.getVersions(),interviews:this.getInterviews(),settings:this.getSettings()},null,2)}importDesign(raw:string){const value=savedDesignSchema.parse(JSON.parse(raw));this.saveDesign(value);return value}clearAll(){for(const key of Object.values(KEYS)){try{this.primary.removeItem?.(key)}catch{}this.fallback.removeItem(key)}}}
+export const browserStorage=()=>new StorageService(window.localStorage);
