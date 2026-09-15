@@ -14,7 +14,6 @@ export const designInputSchema = z.object({
   additionalRequirements: z.string().max(3000),
   difficulty: z.enum(["Beginner", "Intermediate", "Advanced", "FAANG-level"]),
 });
-
 export type DesignInput = z.infer<typeof designInputSchema>;
 
 export const estimateSchema = z.object({
@@ -22,12 +21,30 @@ export const estimateSchema = z.object({
   readRps: z.number(), writeRps: z.number(), peakBandwidthBytesPerSecond: z.number(),
   formulas: z.record(z.string(), z.string()),
 });
+const requirementsSchema = z.object({
+  functional: z.array(z.string()), nonFunctional: z.array(z.string()),
+  assumptions: z.array(z.string()), constraints: z.array(z.string()),
+});
+const architectureNodeSchema = z.object({
+  id: z.string(), name: z.string(), type: z.string(), technology: z.string(),
+  description: z.string(), responsibilities: z.array(z.string()), scalingStrategy: z.string(),
+});
+const architectureEdgeSchema = z.object({ id: z.string(), source: z.string(), target: z.string(), label: z.string() });
+export const generatedDesignSchema = z.object({
+  title: z.string(), requirements: requirementsSchema, estimation: estimateSchema,
+  architecture: z.object({ nodes: z.array(architectureNodeSchema), edges: z.array(architectureEdgeSchema) }),
+});
+export type GeneratedDesign = z.infer<typeof generatedDesignSchema>;
 
 export const savedDesignSchema = z.object({
   id: z.string(), createdAt: z.string(), updatedAt: z.string(),
   status: z.enum(["draft", "generated"]), input: designInputSchema,
-  estimate: estimateSchema.optional(),
+  estimate: estimateSchema.optional(), generatedDesign: generatedDesignSchema.optional(),
 });
-
 export type SavedDesign = z.infer<typeof savedDesignSchema>;
 export const savedDesignsSchema = z.array(savedDesignSchema);
+
+export const generationEventSchema = z.object({
+  type: z.string(), stage: z.string(), data: z.unknown().nullable(),
+});
+export type GenerationEvent = z.infer<typeof generationEventSchema>;
