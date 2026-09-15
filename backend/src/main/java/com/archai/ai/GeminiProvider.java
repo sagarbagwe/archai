@@ -19,7 +19,10 @@ public final class GeminiProvider implements LLMProvider {
                 .apiKey(apiKey)
                 .httpOptions(HttpOptions.builder()
                         .timeout(90_000)
-                        .retryOptions(HttpRetryOptions.builder().attempts(3).httpStatusCodes(408, 429, 500, 502, 503, 504)))
+                        .retryOptions(HttpRetryOptions.builder()
+                                .attempts(3)
+                                .httpStatusCodes(408, 429, 500, 502, 503, 504))
+                        .build())
                 .build();
         this.model = model;
         this.maxOutputTokens = maxOutputTokens;
@@ -30,7 +33,7 @@ public final class GeminiProvider implements LLMProvider {
         GenerateContentConfig config = GenerateContentConfig.builder()
                 .systemInstruction(Content.fromParts(Part.fromText(systemInstruction)))
                 .responseMimeType("application/json")
-                .responseSchema(responseSchema)
+                .responseJsonSchema(responseSchema)
                 .candidateCount(1)
                 .maxOutputTokens(maxOutputTokens)
                 .build();
@@ -40,5 +43,6 @@ public final class GeminiProvider implements LLMProvider {
         return text;
     }
 
-    @Override public boolean isAvailable() { return true; }
+    @Override
+    public boolean isAvailable() { return true; }
 }

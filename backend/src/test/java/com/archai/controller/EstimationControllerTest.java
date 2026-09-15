@@ -6,17 +6,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.archai.estimation.CapacityEstimator;
 import com.archai.exception.GlobalExceptionHandler;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
-@WebMvcTest(EstimationController.class)
-@Import({CapacityEstimator.class, GlobalExceptionHandler.class})
 class EstimationControllerTest {
-    @Autowired MockMvc mockMvc;
+    private MockMvc mockMvc;
+
+    @BeforeEach
+    void setUp() {
+        LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
+        validator.afterPropertiesSet();
+        mockMvc = MockMvcBuilders
+                .standaloneSetup(new EstimationController(new CapacityEstimator()))
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .setValidator(validator)
+                .build();
+    }
 
     @Test
     void rejectsInvalidDailyUsers() throws Exception {
