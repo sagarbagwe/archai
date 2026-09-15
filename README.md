@@ -2,9 +2,31 @@
 
 **Design scalable systems with AI.**
 
-ArchAI is a working full-stack portfolio application for generating, understanding, modifying, and practicing production system designs. It combines a Next.js developer workspace with a stateless Java 21/Spring Boot API and Google Gemini structured output.
+ArchAI is a full-stack portfolio application for generating, understanding, modifying, and practicing production system designs. It combines a Next.js developer workspace with a stateless Java 21/Spring Boot API and Google Gemini structured output.
 
 > ArchAI does not require a database or user account. Designs, versions, interview sessions, and preferences are persisted locally in the browser.
+
+## Current implementation status
+
+The active implementation includes the end-to-end create → estimate → generate → diagram → analyze → export workflow. The current feature branch is validated continuously by frontend, backend, and secret-scanning checks.
+
+Implemented:
+
+- Local-first design dashboard and creation workflow
+- Staged SSE generation with Gemini-backed structured output
+- Deterministic capacity estimation with visible formulas
+- Interactive React Flow architecture editing and local save
+- Contextual design review and review-before-apply change proposals
+- Failure-impact and 1×–100× traffic simulations
+- Version snapshots, interview practice, examples, settings, and exports
+- Docker Compose, automated tests, CI diagnostics, and secure environment setup
+
+Still being expanded:
+
+- Fine-grained requirements editing and section regeneration
+- Complete API, data-model, caching, messaging, reliability, security, and trade-off workspaces
+- Visual version compare/restore and architecture proposal apply/cancel UI
+- PNG/SVG diagram export, richer import validation, and broader end-to-end coverage
 
 ## Features
 
@@ -12,10 +34,10 @@ ArchAI is a working full-stack portfolio application for generating, understandi
 - Deterministic Java capacity estimates with visible formulas
 - Interactive React Flow architecture diagrams
 - Component editing, connections, minimap, zoom, fit, and local save
-- Context-aware design assistant and safe change proposals
+- Context-aware design review and safe change proposals
 - Failure-impact and traffic-spike simulations
 - Local design dashboard, search, duplicate, delete, and JSON export
-- Version snapshots and restore-ready storage model
+- Version snapshots with a restore-capable storage service
 - Markdown and SQL export APIs
 - System design interview mode with scoring and follow-up questions
 - Example-system library and local application settings
@@ -28,8 +50,8 @@ ArchAI is a working full-stack portfolio application for generating, understandi
 Browser
 ├── Next.js 16 + React 19 + TypeScript + Tailwind CSS
 ├── React Flow interactive architecture workspace
-├── Zustand-ready in-memory application state
-└── versioned localStorage persistence
+├── In-memory UI state
+└── Versioned localStorage persistence
         │
         │ REST + Server-Sent Events
         ▼
@@ -46,8 +68,7 @@ ArchAI itself uses no authentication, PostgreSQL, Redis, Kafka, or other externa
 ```text
 frontend/   Next.js application and browser persistence
 backend/    Spring Boot API, Gemini provider, estimation, simulation, export
-browser     localStorage only (no server-side persistence)
-docs/       research and implementation plan
+docs/       Research and implementation plan
 ```
 
 ## Local setup
@@ -66,7 +87,7 @@ cp .env.example .env
 # Set GEMINI_API_KEY in .env
 ```
 
-Never commit `.env`.
+Never commit `.env` or a real API key.
 
 ### Frontend
 
@@ -100,6 +121,8 @@ cd frontend && npm run lint && npm test && npm run build
 cd backend && mvn verify
 ```
 
+The GitHub Actions workflow runs the same frontend and backend checks on every pull request and posts compact diagnostic comments when a job fails.
+
 ## Core API
 
 - `POST /api/design/generate/stream` — validated generation with real SSE stages
@@ -127,7 +150,7 @@ Every value uses a versioned envelope and Zod validation. Corrupt or unavailable
 
 The Gemini key is read only by Spring Boot. User descriptions and design state are treated as untrusted data, separated from model instructions, bounded by request validation, and constrained by structured-output schemas. Errors are sanitized before reaching the browser.
 
-This is a no-auth portfolio application. Do not deploy it as a shared public service without adding deployment-level abuse controls and a trusted rate limiter.
+This is a no-auth portfolio application. Do not deploy it as a shared public service without deployment-level abuse controls, quotas, and a trusted rate limiter.
 
 ## Demo flow
 
@@ -136,15 +159,18 @@ This is a no-auth portfolio application. Do not deploy it as a shared public ser
 3. Edit the React Flow diagram and save it locally.
 4. Ask why Kafka or a database was selected.
 5. Simulate a database failure and a 10× traffic spike.
-6. Propose “Add Redis caching,” review the impact, then save a version before applying.
-7. Refresh the browser and verify the design remains.
+6. Propose “Add Redis caching,” then review the impact before changing the diagram.
+7. Create a version snapshot and refresh the browser to verify persistence.
 8. Export JSON, Markdown, or SQL.
 9. Practice the same system in Interview Mode.
 
-## Future improvements
+## Project constraints
 
-- Multi-user collaboration and cloud persistence
-- RAG over architecture documentation
-- Additional LLM providers behind `LLMProvider`
-- Real-time collaborative diagram editing
-- Deployment-specific edge rate limiting and observability
+- Gemini is called only from the backend through the `LLMProvider` abstraction.
+- ArchAI persistence is limited to browser `localStorage` and in-memory state.
+- The application intentionally has no authentication, user accounts, application database, Redis, or Kafka.
+- Capacity calculations are deterministic Java code rather than model-generated numbers.
+
+## Roadmap
+
+See `docs/implementation-plan.md` for the detailed work breakdown and `docs/research.md` for primary-source implementation research.
