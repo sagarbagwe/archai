@@ -25,26 +25,35 @@ const requirementsSchema = z.object({
   functional: z.array(z.string()), nonFunctional: z.array(z.string()),
   assumptions: z.array(z.string()), constraints: z.array(z.string()),
 });
-const architectureNodeSchema = z.object({
+export const architectureNodeSchema = z.object({
   id: z.string(), name: z.string(), type: z.string(), technology: z.string(),
   description: z.string(), responsibilities: z.array(z.string()), scalingStrategy: z.string(),
 });
-const architectureEdgeSchema = z.object({ id: z.string(), source: z.string(), target: z.string(), label: z.string() });
+export type ArchitectureComponent = z.infer<typeof architectureNodeSchema> & Record<string, unknown>;
+export const architectureEdgeSchema = z.object({ id: z.string(), source: z.string(), target: z.string(), label: z.string() });
+export type ArchitectureConnection = z.infer<typeof architectureEdgeSchema>;
+export const architectureSchema = z.object({ nodes: z.array(architectureNodeSchema), edges: z.array(architectureEdgeSchema) });
 export const generatedDesignSchema = z.object({
-  title: z.string(), requirements: requirementsSchema, estimation: estimateSchema,
-  architecture: z.object({ nodes: z.array(architectureNodeSchema), edges: z.array(architectureEdgeSchema) }),
+  title: z.string(), requirements: requirementsSchema, estimation: estimateSchema, architecture: architectureSchema,
 });
 export type GeneratedDesign = z.infer<typeof generatedDesignSchema>;
+
+export const diagramSchema = z.object({
+  nodes: z.array(z.object({
+    id: z.string(), type: z.literal("architecture"),
+    position: z.object({ x: z.number(), y: z.number() }), data: architectureNodeSchema,
+  })),
+  edges: z.array(z.object({ id: z.string(), source: z.string(), target: z.string(), label: z.string().optional() })),
+});
+export type DiagramState = z.infer<typeof diagramSchema>;
 
 export const savedDesignSchema = z.object({
   id: z.string(), createdAt: z.string(), updatedAt: z.string(),
   status: z.enum(["draft", "generated"]), input: designInputSchema,
-  estimate: estimateSchema.optional(), generatedDesign: generatedDesignSchema.optional(),
+  estimate: estimateSchema.optional(), generatedDesign: generatedDesignSchema.optional(), diagram: diagramSchema.optional(),
 });
 export type SavedDesign = z.infer<typeof savedDesignSchema>;
 export const savedDesignsSchema = z.array(savedDesignSchema);
 
-export const generationEventSchema = z.object({
-  type: z.string(), stage: z.string(), data: z.unknown().nullable(),
-});
+export const generationEventSchema = z.object({ type: z.string(), stage: z.string(), data: z.unknown().nullable() });
 export type GenerationEvent = z.infer<typeof generationEventSchema>;
