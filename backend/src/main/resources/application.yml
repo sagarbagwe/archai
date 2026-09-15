@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: archai-backend
+server:
+  port: 8080
+  error:
+    include-message: never
+    include-stacktrace: never
+archai:
+  cors:
+    allowed-origins: ${ARCHAI_ALLOWED_ORIGINS:http://localhost:3000}
+  ai:
+    model: ${ARCHAI_GEMINI_MODEL:gemini-3.6-flash}
+    api-key: ${GEMINI_API_KEY:}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
