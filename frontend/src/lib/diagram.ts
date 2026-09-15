@@ -1,4 +1,4 @@
-import { ArchitectureConnection, ArchitectureComponent, DiagramState } from "@/lib/domain/design";
+import { ArchitectureConnection, ArchitectureComponent, DiagramState } from "./domain/design";
 
 export function buildInitialDiagram(architecture: { nodes: ArchitectureComponent[]; edges: ArchitectureConnection[] }): DiagramState {
   const columns = architecture.nodes.length > 8 ? 4 : 3;
@@ -9,9 +9,7 @@ export function buildInitialDiagram(architecture: { nodes: ArchitectureComponent
       position: { x: (index % columns) * 300, y: Math.floor(index / columns) * 190 },
       data: component,
     })),
-    edges: architecture.edges.map((edge) => ({
-      id: edge.id, source: edge.source, target: edge.target, label: edge.label,
-    })),
+    edges: architecture.edges.map((edge) => ({ id: edge.id, source: edge.source, target: edge.target, label: edge.label })),
   };
 }
 
